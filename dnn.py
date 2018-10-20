@@ -15,11 +15,11 @@ def grad_ReLu(v):
 	
 def loss(yhat, ytrue):
 	ydiff = ytrue-yhat
-	return np.dot(ydiff,ydiff)/np.shape(ytrue)[0]
+	return np.mean(ydiff**2)
 
 def grad_loss(yhat, ytrue):
 	ydiff = ytrue-yhat
-	return -2*ydiff/np.shape(ytrue)[0]
+	return -2*ydiff/np.shape(ytrue)[0]/np.shape(ytrue)[1]
 	
 class dnn:
 	def __init__(self, num_layers, dim, learning_rate = 0.001):
@@ -36,25 +36,26 @@ class dnn:
 			beta2 = 0.999,
 			eps = 1e-8):
 		N = x.shape[0]
+		num_sample = x.shape[1]
 		a_lst = [np.copy(x)]
 		z_lst = [np.copy(x)]
 		for i in range(0, self.num_layers):
 			if (i ==0):
 				self.W_lst.append(np.random.randn(self.d,N))
-				self.b_lst.append(np.random.randn(self.d))
-				a_lst.append(np.zeros(self.d))
-				z_lst.append(np.zeros(self.d))
+				self.b_lst.append(np.random.randn(self.d).reshape(-1,1))
+				a_lst.append(np.zeros((self.d, num_sample)))
+				z_lst.append(np.zeros((self.d, num_sample)))
 			elif (i==self.num_layers-1):
 				self.W_lst.append(np.random.randn(N, self.d))
-				self.b_lst.append(np.random.randn(N))
-				a_lst.append(np.zeros(N))
-				z_lst.append(np.zeros(N))
+				self.b_lst.append(np.random.randn(N).reshape(-1,1))
+				a_lst.append(np.zeros((N, num_sample)))
+				z_lst.append(np.zeros((N, num_sample)))
 
 			else:
 				self.W_lst.append(np.random.randn(self.d, self.d))
-				self.b_lst.append(np.random.randn(self.d))
-				a_lst.append(np.zeros(self.d))
-				z_lst.append(np.zeros(self.d))
+				self.b_lst.append(np.random.randn(self.d).reshape(-1,1))
+				a_lst.append(np.zeros((self.d, num_sample)))
+				z_lst.append(np.zeros((self.d, num_sample)))
 		#self.W_lst= [W1,W2,W3]
 		#self.b_lst =[ b1,b2,b3]
 		previous_loss = np.inf
@@ -63,8 +64,8 @@ class dnn:
 			if abs(previous_loss - current_loss) < tol:
 				break
 			previous_loss = current_loss
-			if ((_it) % 100 == 0):
-				print(_it, current_loss)
+			if ((_it-1) % 100 == 0):
+				print('iteration:', _it-1, current_loss)
 			# evaluate each node (forward)
 			for alpha in range(1, self.num_layers+1):
 				z = np.matmul(self.W_lst[alpha-1], a_lst[alpha-1]) + self.b_lst[alpha-1]
@@ -83,8 +84,8 @@ class dnn:
 			for alpha in np.arange(self.num_layers-1, 0, -1):
 				W = self.W_lst[alpha]
 				a = a_lst[alpha]
-				dW = np.outer(delta, a)
-				db = delta
+				dW = np.dot(delta, a.T)
+				db = np.mean(delta,axis=1).reshape(-1,1)
 						
 				if alpha not in w_mom_dict:
 					w_mom = dW
@@ -120,20 +121,24 @@ class dnn:
 		return v
 if __name__ == "__main__":
 	N = 10
+	K = 1
 	d = 5
-	np.random.seed(2)
-	x = np.random.randn(N)
+	num_layer = 3
+	
+	np.random.seed(20)
+	x = np.random.randn(N,K)
 	W1 = np.random.randn(d,N)
 	W2 = np.random.randn(d,d)
 	W3 = np.random.randn(N,d)
 	b1 = np.random.randn(d)
 	b2 = np.random.randn(d)
 	b3 = np.random.randn(N)
-	y = ReLu(np.matmul(W1, x)+b1)
-	y = ReLu(np.matmul(W2, y) + b2)
-	y = ReLu(np.matmul(W3, y)+ b3)
-	y = y + 0.1*np.random.randn(N)
-	clf = dnn(3,d)
+	
+	y = ReLu(np.matmul(W1, x)+b1.reshape(-1,1))
+	y = ReLu(np.matmul(W2, y) + b2.reshape(-1,1))
+	y = ReLu(np.matmul(W3, y)+ b3.reshape(-1,1))
+	y = y + 0.1*np.random.randn(N).reshape(-1,1)
+	clf = dnn(num_layer,d)
 	clf.fit(x,y)
 	yhat = clf.predict(x)
 	ydiff = y - yhat

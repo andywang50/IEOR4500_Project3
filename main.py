@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
 	x_train, y_train, x_test, y_test = train_test_split(ret_mat)
 	
-	num_layer = 2
+	num_layer = 3 # hiddenlayer = 2; plus output layer = 3
 	d = 50
 	print("Training with num_layer:", num_layer, 
 	       ", number of nodes per layer:", d)

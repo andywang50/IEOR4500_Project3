@@ -22,50 +22,67 @@ def grad_loss(yhat, ytrue):
 	return -2*ydiff/np.shape(ytrue)[0]/np.shape(ytrue)[1]
 	
 class dnn:
-	def __init__(self, num_layers, dim, learning_rate = 0.001):
+	def __init__(self, num_layers, dim, learning_rate = 0.3,
+				tol=1e-6, beta1 = 0.4, beta2 = 0.8, eps=1e-8):
 		self.W_lst = []
 		self.b_lst = []
 		self.num_layers = num_layers
 		self.d = dim
 		self.lambdaval= learning_rate
+		self.tol=tol
+		self.beta1=beta1
+		self.beta2=beta2
+		self.eps=eps
 		
-	def fit(self, x, y, 
-			num_iter = 1000000,
-			tol=1e-6, 
-			beta1 = 0.9,
-			beta2 = 0.999,
-			eps = 1e-8):
+	def fit(self, x, y, num_iter = 10000):
+				
+		tol=self.tol
+		beta1 = self.beta1
+		beta2 = self.beta2
+		eps = self.eps
+		
 		N = x.shape[0]
 		num_sample = x.shape[1]
 		a_lst = [np.copy(x)]
 		z_lst = [np.copy(x)]
 		for i in range(0, self.num_layers):
 			if (i ==0):
-				self.W_lst.append(np.random.randn(self.d,N))
-				self.b_lst.append(np.random.randn(self.d).reshape(-1,1))
+				self.W_lst.append(np.random.rand(self.d,N))
+				self.b_lst.append(np.random.rand(self.d).reshape(-1,1))
+#==============================================================================
+# 				self.W_lst.append(np.ones((self.d,N)))
+# 				self.b_lst.append(np.ones(self.d).reshape(-1,1))
+#==============================================================================
 				a_lst.append(np.zeros((self.d, num_sample)))
 				z_lst.append(np.zeros((self.d, num_sample)))
 			elif (i==self.num_layers-1):
-				self.W_lst.append(np.random.randn(N, self.d))
-				self.b_lst.append(np.random.randn(N).reshape(-1,1))
+				self.W_lst.append(np.random.rand(N, self.d))
+				self.b_lst.append(np.random.rand(N).reshape(-1,1))
+#==============================================================================
+# 				self.W_lst.append(np.ones((N, self.d)))
+# 				self.b_lst.append(np.ones(N).reshape(-1,1))
+#==============================================================================
 				a_lst.append(np.zeros((N, num_sample)))
 				z_lst.append(np.zeros((N, num_sample)))
 
 			else:
-				self.W_lst.append(np.random.randn(self.d, self.d))
-				self.b_lst.append(np.random.randn(self.d).reshape(-1,1))
+				self.W_lst.append(np.random.rand(self.d, self.d))
+				self.b_lst.append(np.random.rand(self.d).reshape(-1,1))
+#==============================================================================
+# 				self.W_lst.append(np.ones((self.d, self.d)))
+# 				self.b_lst.append(np.ones(self.d).reshape(-1,1))
+#==============================================================================
 				a_lst.append(np.zeros((self.d, num_sample)))
 				z_lst.append(np.zeros((self.d, num_sample)))
 		#self.W_lst= [W1,W2,W3]
 		#self.b_lst =[ b1,b2,b3]
 		previous_loss = np.inf
+		w_mom_dict={}
+		b_mom_dict={}
+		w_reg_dict={}
+		b_reg_dict={}
 		for _it in range(0, num_iter+1):
-			current_loss = loss(a_lst[-1], y)
-			if abs(previous_loss - current_loss) < tol:
-				break
-			previous_loss = current_loss
-			if ((_it-1) % 100 == 0):
-				print('iteration:', _it-1, current_loss)
+
 			# evaluate each node (forward)
 			for alpha in range(1, self.num_layers+1):
 				z = np.matmul(self.W_lst[alpha-1], a_lst[alpha-1]) + self.b_lst[alpha-1]
@@ -74,14 +91,10 @@ class dnn:
 				
 			# backward induction
 			# params for Adam
-			delta = grad_loss(a_lst[-1], y)
-			
-			w_mom_dict={}
-			b_mom_dict={}
-			w_reg_dict={}
-			b_reg_dict={}
+			delta = grad_loss(a_lst[-1], y)		
 
-			for alpha in np.arange(self.num_layers-1, 0, -1):
+
+			for alpha in np.arange(self.num_layers-1, -1, -1):
 				W = self.W_lst[alpha]
 				a = a_lst[alpha]
 				dW = np.dot(delta, a.T)
@@ -111,6 +124,13 @@ class dnn:
 				self.b_lst[alpha] = self.b_lst[alpha] - self.lambdaval * (b_mom_tilde/(b_reg_tilde**0.5 + eps))
 								
 				delta = np.multiply(np.matmul(self.W_lst[alpha].T, delta),grad_ReLu(z_lst[alpha]))
+			current_loss = loss(a_lst[-1], y)
+			if abs(previous_loss - current_loss) < tol:
+				break
+			previous_loss = current_loss
+			if (_it % 1 == 0):
+				print('iteration:', _it, current_loss)
+				
 		return self.W_lst, self.b_lst
 	
 	def predict(self, x):

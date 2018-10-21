@@ -13,7 +13,8 @@
 #include <exception>
 #include <iostream>
 #include <cmath>
-
+#include <cstdlib>
+#include <string>
 
 class matrix;
 class vec;
@@ -21,16 +22,22 @@ class vec;
 void print_matrix(const matrix&);
 
 matrix add(const matrix&, const matrix&);
+matrix add(const matrix&, const vec&);
+matrix add(const matrix&, double);
 matrix substract(const matrix&, const matrix&);
+matrix substract(const matrix&, const vec&);
 matrix dot_prod(const matrix&, const matrix&);
 matrix elementwise_prod(const matrix&, const matrix&);
+matrix elementwise_division(const matrix&, const matrix&);
 matrix scalar_prod(const matrix&, double);
 matrix scalar_prod(double ,const matrix&);
 matrix scalar_division(const matrix&a, double b);
 matrix transpose(const matrix&);
-matrix pow(const matrix&, double);
+matrix square(const matrix&);
+matrix sqrt(const matrix&);
 double sum(const matrix&);
 double mean(const matrix&);
+vec col_mean(const matrix&);
 
 matrix cross_prod(const vec&, const vec&);
 double dot_prod(const vec&,const vec&);
@@ -47,13 +54,16 @@ protected:
 
 public:
     matrix();
-    matrix(int _row, int _col);
+    matrix(int _row, int _col, bool random=false);
     matrix(const matrix&);
     matrix& operator=(matrix copy);
     ~matrix();
     
     double& operator[] (int index);
     double operator[] (int index) const;
+    
+    double& operator() (int i, int j);
+    double operator() (int i, int j) const;
     
     //friend void print_matrix(const matrix& mat);
     
@@ -78,7 +88,7 @@ protected:
     void swap(vec& other);
 public:
     vec();
-    vec(int _len);
+    vec(int _len, bool random=false);
     vec(const vec&);
     vec(const matrix&);
     vec& operator= (vec copy);

@@ -15,9 +15,9 @@ matrix::matrix():rows(0), columns(0), entry(nullptr){}
 
 /*
  Constructor with specified number of rows and number of columns;
- will initialize every entry to 0.0.
+ will initialize every entry to random number.
  */
-matrix::matrix(int _row, int _col): rows(_row), columns(_col), entry(nullptr){
+matrix::matrix(int _row, int _col, bool random): rows(_row), columns(_col), entry(nullptr){
     try{
         entry = new double[rows*columns]();
     }
@@ -25,6 +25,13 @@ matrix::matrix(int _row, int _col): rows(_row), columns(_col), entry(nullptr){
         std::cerr<<"Constructor failed to finish while pre-allocating space"<<std::endl;
         entry = nullptr;
     }
+	if (random) {
+		for (int i = 0; i < _row*_col; ++i) {
+			entry[i] = (double) rand() / (RAND_MAX);
+			//entry[i] = 1.0;
+
+		}
+	}
 }
 
 /*
@@ -39,7 +46,7 @@ matrix::matrix(const matrix& copy):rows(copy.rows), columns(copy.columns), entry
         entry = nullptr;
     }
     if(entry) // equivalent to if(entry != nullptr)
-        for(size_t i=0;i<rows*columns;++i)
+        for(int i=0;i<rows*columns;++i)
             entry[i] = copy.entry[i];
 }
 
@@ -81,6 +88,15 @@ double matrix::operator[] (int index) const{
     return entry[index];
 }
 
+double& matrix::operator() (int i, int j){
+    return entry[i*columns+j];
+}
+
+double matrix::operator() (int i, int j) const{
+    return entry[i*columns+j];
+  
+}
+
 /*
  print the matrix
  */
@@ -89,7 +105,7 @@ void print_matrix(const matrix& mat) {
     int cols = mat.get_columns();
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
-            printf("%f, ", mat[i* + j]);
+            printf("%f, ", mat[i*cols + j]);
         }
         printf("\n");
     }
@@ -111,7 +127,7 @@ vec::vec():matrix(){}
 /*
  constructor with specific length
  */
-vec::vec(int _len):matrix(_len,1), length(_len){
+vec::vec(int _len, bool random):matrix(_len,1,random), length(_len){
     
 }
 
@@ -135,6 +151,9 @@ vec& vec::operator= (vec copy){
  */
 
 vec::vec(const matrix& other):matrix(other){
+    if (other.get_rows() > 1 && other.get_columns() > 1){
+        throw "can only convert 1-dim matrix to vec " + other.print_shape() + "\n";
+    }
     if (other.get_rows() > 1) length = other.get_rows();
     else length = other.get_columns();
 }
@@ -153,6 +172,16 @@ matrix add(const matrix& a, const matrix& b){
     return result;
 }
 
+matrix add(const matrix& a, double b){
+    matrix result(a);
+    for (int i = 0; i < a.get_rows() * a.get_columns(); ++i){
+        result[i] += b;
+    }
+    
+    return result;
+}
+
+
 matrix substract(const matrix &a, const matrix &b){
     return add(a, scalar_prod(-1.0, b));
 }
@@ -167,13 +196,16 @@ matrix dot_prod(const matrix& a, const matrix& b){
     
     int l = a.get_columns();
     
+    matrix tb = transpose(b);
+    
     matrix result(rows, columns);
     for (int i = 0; i < rows; ++ i){
         for (int j = 0; j < columns; ++ j){
-            result[i*columns+j] = 0.0;
+            double sum = 0.0;
             for (int k = 0; k < l; ++k){
-                result[i*columns+j] += a[i*l+k] * b[k*l+j];
+                sum += a(i,k) * tb(j,k);
             }
+			result(i, j) = sum;
         }
     }
     return result;
@@ -191,6 +223,20 @@ matrix elementwise_prod(const matrix& a, const matrix& b){
     
     return result;
 }
+
+matrix elementwise_division(const matrix& a, const matrix& b){
+    if (!(a.shape_same(b))){
+        throw "dimension mismatch in elementwise_prod: " + a.print_shape() + " " + b.print_shape() + "\n";
+    }
+    
+    matrix result(a);
+    for (int i = 0; i < a.get_rows() * a.get_columns(); ++i){
+        result[i] /= b[i];
+    }
+    
+    return result;
+}
+
 
 matrix scalar_prod(const matrix& a, double b){
     return scalar_prod(b, a);
@@ -215,7 +261,7 @@ matrix transpose(const matrix& a){
     matrix result(rows, columns);
     for (int i = 0; i < rows; ++i){
         for (int j = 0; j < columns; ++j){
-            result[i*columns+j] = a[j*rows+i];
+            result(i,j) = a(j,i);
         }
     }
     return result;
@@ -271,13 +317,22 @@ vec dot_prod(const matrix& m, const vec& v){
     return result;
 }
 
-matrix pow(const matrix& m, double n){
+matrix square(const matrix& m){
     matrix result(m);
     int num_entries = m.get_rows() * m.get_columns();
     for(int i = 0; i < num_entries; ++i){
-        result[i] = pow(result[i], n);
+        result[i] *= result[i];
     }
     return result;
+}
+
+matrix sqrt(const matrix& m) {
+	matrix result(m);
+	int num_entries = m.get_rows() * m.get_columns();
+	for (int i = 0; i < num_entries; ++i) {
+		result[i] = sqrt(result[i]);
+	}
+	return result;
 }
 
 double sum(const matrix& m){
@@ -292,4 +347,43 @@ double sum(const matrix& m){
 double mean(const matrix& m){
     int num_entries = m.get_rows() * m.get_columns();
     return sum(m)/num_entries;
+}
+
+vec col_mean(const matrix& m){
+    vec result(m.get_rows());
+    int cols = m.get_columns();
+    for (int i = 0; i < m.get_rows(); ++i){
+        double sum = 0.0;
+        for (int j = 0; j < cols; ++j){
+            sum += m(i,j);
+        }
+        result[i] = sum/cols;
+    }
+    return result;
+}
+
+
+/*
+ Add a matrix with vector (with broadcast)
+ */
+matrix add(const matrix& a, const vec& b){
+    if (!(a.get_rows() == b.get_length())){
+        throw "dimension mismatch in add (broadcast): " + a.print_shape() + " " + b.print_shape() + "\n";
+    }
+    
+    int rows = a.get_rows();
+    int columns = a.get_columns();
+    
+    matrix result(a);
+    for (int i = 0; i < rows; ++i){
+        for (int j = 0; j < columns; ++j){
+            result[i*columns + j] += b[i];
+        }
+    }
+    
+    return result;
+}
+
+matrix substract(const matrix& a, const vec& b){
+    return add(a, scalar_prod(b, -1.0));
 }

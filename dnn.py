@@ -91,7 +91,7 @@ class dnn:
 				
 			# backward induction
 			# params for Adam
-			delta = grad_loss(a_lst[-1], y)		
+			delta = grad_loss(a_lst[-1], y) * grad_ReLu(z_lst[-1])		
 
 
 			for alpha in np.arange(self.num_layers-1, -1, -1):

@@ -8,6 +8,8 @@
 
 #include "matrix.h"
 
+
+
 /*
  Default Constructor
  */
@@ -186,6 +188,21 @@ matrix substract(const matrix &a, const matrix &b){
     return add(a, scalar_prod(-1.0, b));
 }
 
+void MatrixMultiplication(const matrix&a, const matrix&tb, matrix& c,int row){
+    //mtx[row][col].lock();
+    int l = a.get_columns();
+    int columns = tb.get_rows();
+    for (int j = 0; j < columns; ++j){
+        double sum=0.0;
+        for (int k = 0; k < l; ++k){
+            sum += a(row,k)*tb(j,k);
+        }
+        c(row,j) = sum;
+    }
+    
+    //mtx[row][col].unlock();
+}
+
 matrix dot_prod(const matrix& a, const matrix& b){
     if (a.get_columns() != b.get_rows()){
         throw "dimension mismatch in dot_prod: " + a.print_shape() + " " + b.print_shape() + "\n";
@@ -197,17 +214,31 @@ matrix dot_prod(const matrix& a, const matrix& b){
     int l = a.get_columns();
     
     matrix tb = transpose(b);
-    
+    //std::mutex mtx[rows][columns];
+    std::thread myThread[rows];
     matrix result(rows, columns);
+
+//    for (int i = 0; i < rows; ++ i){
+//        for (int j = 0; j < columns; ++ j){
+//            double sum = 0.0;
+//            for (int k = 0; k < l; ++k){
+//                sum += a(i,k) * tb(j,k);
+//                //myThread[k] = std::thread(MatrixMultiplication, std::ref(a), std::ref(tb), std::ref(result), i, j, k);
+//                
+//            }
+//			result(i, j) = sum;
+//        }
+//    }
     for (int i = 0; i < rows; ++ i){
-        for (int j = 0; j < columns; ++ j){
-            double sum = 0.0;
-            for (int k = 0; k < l; ++k){
-                sum += a(i,k) * tb(j,k);
-            }
-			result(i, j) = sum;
-        }
+        myThread[i] = std::thread(MatrixMultiplication, std::ref(a), std::ref(tb), std::ref(result), i);
+    
+    
     }
+    for (int i = 0; i < rows; ++ i){
+        myThread[i].join();
+        
+    }
+    
     return result;
 }
 

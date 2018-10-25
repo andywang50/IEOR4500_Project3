@@ -110,6 +110,7 @@ void dnn::fit(const matrix& x, const matrix& y, int num_iter){
             a_lst[alpha] = ReLu(z);
         }
         delta = grad_loss(a_lst[num_layers], y);
+        delta = elementwise_prod(delta, grad_ReLu(z_lst[num_layers]));
         // backward induction, use Adam
 
         for (int alpha = num_layers - 1; alpha >= 0; --alpha){

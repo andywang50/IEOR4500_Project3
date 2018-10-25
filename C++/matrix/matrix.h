@@ -15,6 +15,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <string>
+#include <mutex>
+#include <thread>
 
 class matrix;
 class vec;

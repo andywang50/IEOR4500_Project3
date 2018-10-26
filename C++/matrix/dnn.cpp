@@ -109,8 +109,7 @@ void dnn::fit(const matrix& x, const matrix& y, int num_iter){
             z_lst[alpha] = z;
             a_lst[alpha] = ReLu(z);
         }
-        delta = grad_loss(a_lst[num_layers], y);
-        delta = elementwise_prod(delta, grad_ReLu(z_lst[num_layers]));
+        delta = grad_loss(z_lst[num_layers], y);
         // backward induction, use Adam
 
         for (int alpha = num_layers - 1; alpha >= 0; --alpha){
@@ -159,7 +158,7 @@ void dnn::fit(const matrix& x, const matrix& y, int num_iter){
 
             delta = elementwise_prod(dot_prod(transpose(W), delta), grad_ReLu(z_lst[alpha]));
         }
-        double current_loss = loss(a_lst[num_layers],y);
+        double current_loss = loss(z_lst[num_layers],y);
         if (fabs(previous_loss - current_loss) < tol){
             //printf("%f, %f, %f", current_loss, previous_loss, fabs(previous_loss - current_loss));
             break;
@@ -173,13 +172,17 @@ void dnn::fit(const matrix& x, const matrix& y, int num_iter){
 }
 matrix dnn::predict(const matrix& x){
     matrix v(x);
-    for (int alpha = 1; alpha <= num_layers; ++ alpha){
+    for (int alpha = 1; alpha < num_layers; ++ alpha){
         matrix W = W_lst[alpha-1];
         vec b = b_lst[alpha-1];
         v = dot_prod(W, v);
         v = add(v, b);
         v = ReLu(v);
     }
+    matrix W = W_lst[num_layers-1];
+    vec b = b_lst[num_layers-1];
+    v = dot_prod(W,v);
+    v = add(v,b);
     return v;
 }
 

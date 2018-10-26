@@ -22,7 +22,7 @@ def grad_loss(yhat, ytrue):
 	return -2*ydiff/np.shape(ytrue)[0]/np.shape(ytrue)[1]
 	
 class dnn:
-	def __init__(self, num_layers, dim, learning_rate = 0.3,
+	def __init__(self, num_layers, dim, learning_rate = 0.5,
 				tol=1e-6, beta1 = 0.4, beta2 = 0.8, eps=1e-8):
 		self.W_lst = []
 		self.b_lst = []
@@ -91,7 +91,7 @@ class dnn:
 				
 			# backward induction
 			# params for Adam
-			delta = grad_loss(a_lst[-1], y) * grad_ReLu(z_lst[-1])		
+			delta = grad_loss(z_lst[-1], y)
 
 
 			for alpha in np.arange(self.num_layers-1, -1, -1):
@@ -124,7 +124,7 @@ class dnn:
 				self.b_lst[alpha] = self.b_lst[alpha] - self.lambdaval * (b_mom_tilde/(b_reg_tilde**0.5 + eps))
 								
 				delta = np.multiply(np.matmul(self.W_lst[alpha].T, delta),grad_ReLu(z_lst[alpha]))
-			current_loss = loss(a_lst[-1], y)
+			current_loss = loss(z_lst[-1], y)
 			if abs(previous_loss - current_loss) < tol:
 				break
 			previous_loss = current_loss
@@ -135,9 +135,10 @@ class dnn:
 	
 	def predict(self, x):
 		v = x
-		for alpha in range(1, self.num_layers+1):
+		for alpha in range(1, self.num_layers):
 			v = np.matmul(self.W_lst[alpha-1], v) + self.b_lst[alpha-1]
 			v = ReLu(v)		
+		v = np.matmul(self.W_lst[self.num_layers-1], v) + self.b_lst[self.num_layers-1]
 		return v
 if __name__ == "__main__":
 	N = 10

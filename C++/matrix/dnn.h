@@ -33,8 +33,8 @@ private:
     double beta2; //Adam
     double eps; //Adam
 public:
-    dnn(int, int, double learning_rate=0.3,
-        double tol=1e-3, double beta1=0.5, double beta2=0.8, double eps=1e-8);
+    dnn(int, int, double learning_rate=0.5 ,
+        double tol=1e-4, double beta1=0.4, double beta2=0.8, double eps=1e-8);
     void fit(const matrix&, const matrix&, int num_iter=10000);
     matrix predict(const matrix&);
     
